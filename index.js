@@ -13,11 +13,15 @@ function Seq (xs) {
     });
     
     process.nextTick(function () {
-        ch['catch'](function (err) {
+        ch.error(function (err) {
             console.error(err.stack ? err.stack : err)
         });
     });
-    return ch;
+
+	//Support previous usages
+	ch['catch'] = ch.error;
+
+	return ch;
 }
 
 Seq.ap = Seq; // for compatability with versions <0.3
@@ -37,7 +41,7 @@ function builder (saw, xs) {
             if (err) {
                 context.error = { message : err, key : key };
                 saw.jump(lastPar);
-                saw.down('catch');
+                saw.down('error');
                 g();
             }
             else {
@@ -143,7 +147,7 @@ function builder (saw, xs) {
                 if (running == 0) {
                     context.stack = context.stack_.slice();
                     saw.step = lastPar;
-                    if (errors > 0) saw.down('catch');
+                    if (errors > 0) saw.down('error');
                     errors = 0;
                     saw.next();
                 }
@@ -176,14 +180,14 @@ function builder (saw, xs) {
         };
     }, this);
     
-    this['catch'] = function (cb) {
+    this.error = function (cb) {
         if (context.error) {
             cb.call(context, context.error.message, context.error.key);
             context.error = null;
         }
         saw.next();
     };
-    
+
     this.forEach = function (cb) {
         this.seq(function () {
             context.stack_ = context.stack.slice();
